@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📺 電視提醒</title>
 <style>
+  /* ══════════════════════════════════════════
+     📺 電視提醒跑馬燈 — TV Reminder Marquee
+     Google Sheets → 電視即時顯示
+     ══════════════════════════════════════════ */
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
   :root {
     --bg: #0a0a1a;
     --text: #f0f0f0;
@@ -13,6 +19,7 @@
     --accent-glow: rgba(251, 191, 36, 0.3);
     --muted: rgba(255,255,255,0.12);
   }
+
   body {
     background: var(--bg);
     color: var(--text);
@@ -26,51 +33,271 @@
     user-select: none;
     cursor: none;
   }
-  .clock-area { position: fixed; top: 3vh; width: 100%; text-align: center; }
-  .clock-time { font-size: 5vw; font-weight: 300; color: rgba(255,255,255,0.25); font-variant-numeric: tabular-nums; letter-spacing: 0.05em; }
-  .clock-date { font-size: 1.8vw; color: rgba(255,255,255,0.15); margin-top: 0.5vh; }
-  .message-area { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 8vw; min-height: 40vh; }
-  .message-text { font-size: 10vw; font-weight: 700; line-height: 1.3; color: var(--text); text-shadow: 0 0 40px var(--accent-glow), 0 0 80px var(--accent-glow); opacity: 0; transform: translateY(20px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-  .message-text.visible { opacity: 1; transform: translateY(0); }
-  .message-text.exit { opacity: 0; transform: translateY(-20px); }
-  .idle-screen { display: flex; flex-direction: column; align-items: center; gap: 3vh; }
-  .idle-heart { font-size: 8vw; animation: pulse 3s ease-in-out infinite; }
-  .idle-text { font-size: 4vw; color: rgba(255,255,255,0.3); font-weight: 300; }
-  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.08); opacity: 1; } }
-  .dots { position: fixed; bottom: 4vh; display: flex; gap: 1.2vw; justify-content: center; }
-  .dot { width: 1vw; height: 1vw; border-radius: 50%; background: var(--muted); transition: all 0.4s; }
-  .dot.active { background: var(--accent); box-shadow: 0 0 12px var(--accent-glow); transform: scale(1.3); }
-  .status-bar { position: fixed; bottom: 1.5vh; right: 2vw; font-size: 1vw; color: rgba(255,255,255,0.08); }
-  .status-dot { display: inline-block; width: 0.6vw; height: 0.6vw; border-radius: 50%; background: #22c55e; margin-right: 0.4vw; animation: blink 3s infinite; }
-  @keyframes blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0.3; } }
-  .setup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 100; justify-content: center; align-items: center; cursor: default; }
-  .setup-overlay.visible { display: flex; }
-  .setup-box { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 40px; width: min(650px, 92vw); max-height: 88vh; overflow-y: auto; }
-  .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+
+  /* ── 時鐘 Clock ── */
+  .clock-area {
+    position: fixed;
+    top: 3vh;
+    width: 100%;
+    text-align: center;
+  }
+  .clock-time {
+    font-size: 5vw;
+    font-weight: 300;
+    color: rgba(255,255,255,0.25);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+  .clock-date {
+    font-size: 1.8vw;
+    color: rgba(255,255,255,0.15);
+    margin-top: 0.5vh;
+  }
+
+  /* ── 主訊息區 Main Message ── */
+  .message-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 8vw;
+    min-height: 40vh;
+  }
+
+  .message-text {
+    font-size: 10vw;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text);
+    text-shadow: 0 0 40px var(--accent-glow), 0 0 80px var(--accent-glow);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .message-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .message-text.exit {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  /* ── 待機畫面 Idle Screen ── */
+  .idle-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3vh;
+  }
+
+  .idle-heart {
+    font-size: 8vw;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .idle-text {
+    font-size: 4vw;
+    color: rgba(255,255,255,0.3);
+    font-weight: 300;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+
+  /* ── 訊息指示點 Dots ── */
+  .dots {
+    position: fixed;
+    bottom: 4vh;
+    display: flex;
+    gap: 1.2vw;
+    justify-content: center;
+  }
+
+  .dot {
+    width: 1vw;
+    height: 1vw;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.4s;
+  }
+
+  .dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+    transform: scale(1.3);
+  }
+
+  /* ── 狀態列 Status Bar ── */
+  .status-bar {
+    position: fixed;
+    bottom: 1.5vh;
+    right: 2vw;
+    font-size: 1vw;
+    color: rgba(255,255,255,0.08);
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 0.6vw;
+    height: 0.6vw;
+    border-radius: 50%;
+    background: #22c55e;
+    margin-right: 0.4vw;
+    animation: blink 3s infinite;
+  }
+
+  @keyframes blink {
+    0%, 90%, 100% { opacity: 1; }
+    95% { opacity: 0.3; }
+  }
+
+  /* ── 設定面板（按 S 開啟）── */
+  .setup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    cursor: default;
+  }
+  .setup-overlay.visible {
+    display: flex;
+  }
+
+  .setup-box {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 40px;
+    width: min(650px, 92vw);
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+
+  .setup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
   .setup-grid .full { grid-column: 1 / -1; }
-  .color-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-  .color-swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+
+  .color-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .color-swatch {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
   .color-swatch:hover { transform: scale(1.15); }
   .color-swatch.active { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
-  .setup-box select { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; font-size: 14px; outline: none; cursor: pointer; }
+
+  .setup-box select {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+  }
   .setup-box select option { background: #1a1a2e; }
-  input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; outline: none; margin-top: 6px; }
-  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
-  .setup-box h2 { color: var(--accent); margin-bottom: 20px; font-size: 20px; }
-  .setup-box label { display: block; color: #888; font-size: 13px; margin-top: 16px; margin-bottom: 6px; }
-  .setup-box input[type="text"] { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; font-size: 14px; outline: none; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    outline: none;
+    margin-top: 6px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .setup-box h2 {
+    color: var(--accent);
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+
+  .setup-box label {
+    display: block;
+    color: #888;
+    font-size: 13px;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+
+  .setup-box input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
   .setup-box input:focus { border-color: var(--accent); }
-  .setup-box .hint { color: #555; font-size: 11px; margin-top: 4px; }
-  .setup-btn { display: inline-block; margin-top: 24px; padding: 10px 28px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  .setup-box .hint {
+    color: #555;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .setup-btn {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 10px 28px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
   .setup-btn:hover { opacity: 0.9; }
-  .setup-status { margin-top: 12px; color: #22c55e; font-size: 13px; min-height: 20px; }
+
+  .setup-status {
+    margin-top: 12px;
+    color: #22c55e;
+    font-size: 13px;
+    min-height: 20px;
+  }
 </style>
 </head>
 <body>
+
+<!-- 時鐘 -->
 <div class="clock-area">
   <div class="clock-time" id="clockTime">--:--:--</div>
   <div class="clock-date" id="clockDate"></div>
 </div>
+
+<!-- 訊息區 -->
 <div class="message-area" id="messageArea">
   <div class="idle-screen" id="idleScreen">
     <div class="idle-heart">❤️</div>
@@ -78,35 +305,51 @@
   </div>
   <div class="message-text" id="messageText"></div>
 </div>
+
+<!-- 訊息指示點 -->
 <div class="dots" id="dots"></div>
+
+<!-- 狀態列 -->
 <div class="status-bar">
   <span class="status-dot"></span>
   <span id="statusText">連線中...</span>
 </div>
+
+<!-- 設定面板（按 S 開啟） -->
 <div class="setup-overlay" id="setupOverlay">
   <div class="setup-box">
     <h2>⚙️ 設定面板 <span style="font-size:12px;color:#555;font-weight:normal;margin-left:8px">按 ESC 關閉</span></h2>
+
     <div class="setup-grid">
+
+      <!-- 資料來源 -->
       <div class="full">
         <label>Google Sheet CSV 網址</label>
         <input type="text" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" />
         <div class="hint">Google Sheets → 檔案 → 共用 → 發布到網路 → CSV 格式</div>
       </div>
+
+      <!-- 時間設定 -->
       <div>
         <label>更新頻率：<span id="intervalVal">30</span> 秒</label>
         <input type="range" id="intervalInput" min="10" max="120" value="30" step="5" />
         <div class="hint">多久抓一次 Google Sheet</div>
       </div>
+
       <div>
         <label>訊息停留：<span id="displayVal">8</span> 秒</label>
         <input type="range" id="displayInput" min="3" max="30" value="8" step="1" />
         <div class="hint">多則訊息時每則顯示多久</div>
       </div>
+
+      <!-- 文字大小 -->
       <div class="full">
         <label>文字大小：<span id="sizeVal">10</span>vw</label>
         <input type="range" id="sizeInput" min="4" max="18" value="10" step="0.5" />
         <div class="hint">拉大一點老人看更清楚，拉小可以顯示更多字</div>
       </div>
+
+      <!-- 字型 -->
       <div class="full">
         <label>字型樣式</label>
         <select id="fontSelect">
@@ -118,6 +361,8 @@
           <option value="'Georgia', serif">Georgia 襯線體</option>
         </select>
       </div>
+
+      <!-- 文字粗細 -->
       <div>
         <label>文字粗細</label>
         <select id="weightSelect">
@@ -127,6 +372,8 @@
           <option value="900">超粗 Black</option>
         </select>
       </div>
+
+      <!-- 文字顏色 -->
       <div>
         <label>文字顏色</label>
         <div class="color-row" id="textColorRow">
@@ -139,6 +386,8 @@
           <div class="color-swatch" data-color="#fb923c" style="background:#fb923c" title="橘色"></div>
         </div>
       </div>
+
+      <!-- 背景顏色 -->
       <div class="full">
         <label>背景顏色</label>
         <div class="color-row" id="bgColorRow">
@@ -151,117 +400,433 @@
           <div class="color-swatch" data-color="#ffffff" style="background:#ffffff" title="白色"></div>
         </div>
       </div>
+
     </div>
+
     <button class="setup-btn" id="saveBtn">💾 儲存設定</button>
     <div class="setup-status" id="setupStatus"></div>
   </div>
 </div>
+
 <script>
+// ══════════════════════════════════════
+// 📺 電視提醒系統 — TV Reminder System
+// ══════════════════════════════════════
+
 const CONFIG_KEY = 'tv-reminder-config';
-const DEFAULTS = { csvUrl: '', fetchInterval: 30, displayTime: 8, fontSize: 10, fontFamily: "'Microsoft JhengHei', 'Noto Sans TC', sans-serif", fontWeight: 700, textColor: '#f0f0f0', bgColor: '#0a0a1a' };
+const DEFAULTS = {
+  csvUrl: '',
+  fetchInterval: 30,
+  displayTime: 8,
+  fontSize: 10,
+  fontFamily: "'Microsoft JhengHei', 'Noto Sans TC', sans-serif",
+  fontWeight: 700,
+  textColor: '#f0f0f0',
+  bgColor: '#0a0a1a'
+};
+
 let config = loadConfig();
-function loadConfig() { try { const s = localStorage.getItem(CONFIG_KEY); if (s) return { ...DEFAULTS, ...JSON.parse(s) }; } catch(e) {} return { ...DEFAULTS }; }
-function saveConfig(c) { config = c; localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); }
+
+function loadConfig() {
+  try {
+    const saved = localStorage.getItem(CONFIG_KEY);
+    if (saved) return { ...DEFAULTS, ...JSON.parse(saved) };
+  } catch(e) {}
+  return { ...DEFAULTS };
+}
+
+function saveConfig(cfg) {
+  config = cfg;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+
+// Apply visual config to page
 function applyVisualConfig() {
   const root = document.documentElement;
   root.style.setProperty('--bg', config.bgColor);
   root.style.setProperty('--text', config.textColor);
-  const r = parseInt(config.textColor.slice(1,3),16), g = parseInt(config.textColor.slice(3,5),16), b = parseInt(config.textColor.slice(5,7),16);
+
+  // Compute glow from text color
+  const r = parseInt(config.textColor.slice(1,3),16);
+  const g = parseInt(config.textColor.slice(3,5),16);
+  const b = parseInt(config.textColor.slice(5,7),16);
   root.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.3)`);
-  const m = document.getElementById('messageText');
-  m.style.fontSize = config.fontSize + 'vw';
-  m.style.fontFamily = config.fontFamily;
-  m.style.fontWeight = config.fontWeight;
+
+  const msgEl = document.getElementById('messageText');
+  msgEl.style.fontSize = config.fontSize + 'vw';
+  msgEl.style.fontFamily = config.fontFamily;
+  msgEl.style.fontWeight = config.fontWeight;
 }
-let messages = [], currentIndex = 0, fetchTimer = null, rotateTimer = null;
-const clockTime = document.getElementById('clockTime'), clockDate = document.getElementById('clockDate');
-const idleScreen = document.getElementById('idleScreen'), messageText = document.getElementById('messageText');
-const dots = document.getElementById('dots'), statusText = document.getElementById('statusText');
+
+// ── State ──
+let messages = [];
+let currentIndex = 0;
+let fetchTimer = null;
+let rotateTimer = null;
+
+// ── DOM ──
+const clockTime = document.getElementById('clockTime');
+const clockDate = document.getElementById('clockDate');
+const idleScreen = document.getElementById('idleScreen');
+const messageText = document.getElementById('messageText');
+const dots = document.getElementById('dots');
+const statusText = document.getElementById('statusText');
 const setupOverlay = document.getElementById('setupOverlay');
+
+// ── Clock ──
 function updateClock() {
   const now = new Date();
   clockTime.textContent = now.toLocaleTimeString('zh-TW', { hour12: false });
-  const wd = ['日','一','二','三','四','五','六'];
-  clockDate.textContent = `${now.getMonth()+1} 月 ${now.getDate()} 日　星期${wd[now.getDay()]}`;
+
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const w = weekdays[now.getDay()];
+  clockDate.textContent = `${m} 月 ${d} 日　星期${w}`;
 }
-updateClock(); setInterval(updateClock, 1000);
+updateClock();
+setInterval(updateClock, 1000);
+
+// ── Color name mapping (friendly names for Google Sheet) ──
+const COLOR_MAP = {
+  '白': '#f0f0f0', '白色': '#f0f0f0', 'white': '#f0f0f0',
+  '金': '#fbbf24', '金色': '#fbbf24', 'gold': '#fbbf24',
+  '紅': '#f43f5e', '紅色': '#f43f5e', 'red': '#f43f5e',
+  '綠': '#10b981', '綠色': '#10b981', 'green': '#10b981',
+  '藍': '#3b82f6', '藍色': '#3b82f6', 'blue': '#3b82f6',
+  '紫': '#a78bfa', '紫色': '#a78bfa', 'purple': '#a78bfa',
+  '橘': '#fb923c', '橘色': '#fb923c', 'orange': '#fb923c',
+  '黃': '#fbbf24', '黃色': '#fbbf24', 'yellow': '#fbbf24',
+  '粉': '#f472b6', '粉色': '#f472b6', 'pink': '#f472b6',
+};
+
+const BG_COLOR_MAP = {
+  '黑': '#0a0a1a', '深黑': '#0a0a1a', 'dark': '#0a0a1a', 'black': '#0a0a1a',
+  '深藍': '#1a1a2e', 'navy': '#1a1a2e',
+  '海軍藍': '#0f172a',
+  '深棕': '#1c1917', 'brown': '#1c1917',
+  '深綠': '#14532d', 'darkgreen': '#14532d',
+  '深紅': '#450a0a', 'darkred': '#450a0a',
+  '白': '#ffffff', '白色': '#ffffff', 'white': '#ffffff',
+};
+
+const WEIGHT_MAP = {
+  '一般': 400, '普通': 400, 'normal': 400, 'regular': 400,
+  '半粗': 600, 'semibold': 600,
+  '粗': 700, '粗體': 700, 'bold': 700,
+  '超粗': 900, 'black': 900, 'heavy': 900,
+};
+
+function resolveColor(val, map) {
+  if (!val) return null;
+  val = val.trim().toLowerCase();
+  if (map[val]) return map[val];
+  if (val.startsWith('#') && (val.length === 4 || val.length === 7)) return val;
+  return null;
+}
+
+// ── Fetch Google Sheet CSV ──
 async function fetchMessages() {
   if (!config.csvUrl) return;
+
   try {
     const url = config.csvUrl + (config.csvUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
-    const resp = await fetch(url);
-    const text = await resp.text();
+    const response = await fetch(url);
+    const text = await response.text();
+
     const lines = text.trim().split('\n');
-    const nm = [];
+    const newMessages = [];
+    let sheetSettings = {};
+
     for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      const p = parseCSVLine(lines[i]);
-      const msg = (p[0]||'').trim(), show = (p[1]||'').trim().toUpperCase();
-      if (msg && show === 'Y') nm.push(msg);
+      const line = lines[i];
+      if (!line.trim()) continue;
+
+      const parts = parseCSVLine(line);
+      const col1 = (parts[0] || '').trim();
+      const col2 = (parts[1] || '').trim();
+
+      // Settings rows: start with @
+      if (col1.startsWith('@')) {
+        const key = col1.slice(1).trim();
+        sheetSettings[key] = col2;
+        continue;
+      }
+
+      // Message rows
+      if (col1 && col2.toUpperCase() === 'Y') {
+        newMessages.push(col1);
+      }
     }
-    messages = nm;
+
+    // Apply sheet settings to config
+    applySheetSettings(sheetSettings);
+
+    messages = newMessages;
     statusText.textContent = `已連線 · ${messages.length} 則提醒`;
     updateDisplay();
-  } catch (e) { statusText.textContent = '⚠ 連線失敗，稍後重試...'; }
+
+  } catch (err) {
+    console.error('Fetch error:', err);
+    statusText.textContent = '⚠ 連線失敗，稍後重試...';
+  }
 }
+
+// Apply settings from Google Sheet @ rows
+function applySheetSettings(s) {
+  let changed = false;
+
+  // Font size: @字大小
+  if (s['字大小']) {
+    const sz = parseFloat(s['字大小']);
+    if (sz >= 4 && sz <= 18) { config.fontSize = sz; changed = true; }
+  }
+
+  // Text color: @文字顏色
+  if (s['文字顏色']) {
+    const c = resolveColor(s['文字顏色'], COLOR_MAP);
+    if (c) { config.textColor = c; changed = true; }
+  }
+
+  // Background: @背景顏色
+  if (s['背景顏色']) {
+    const c = resolveColor(s['背景顏色'], BG_COLOR_MAP);
+    if (c) { config.bgColor = c; changed = true; }
+  }
+
+  // Font weight: @粗細
+  if (s['粗細']) {
+    const v = s['粗細'].trim().toLowerCase();
+    const w = WEIGHT_MAP[v] || parseInt(v);
+    if (w >= 100 && w <= 900) { config.fontWeight = w; changed = true; }
+  }
+
+  // Display time: @停留秒數
+  if (s['停留秒數']) {
+    const t = parseInt(s['停留秒數']);
+    if (t >= 3 && t <= 30) { config.displayTime = t; changed = true; }
+  }
+
+  if (changed) applyVisualConfig();
+}
+
+// Simple CSV line parser
 function parseCSVLine(line) {
-  const r = []; let c = '', q = false;
+  const result = [];
+  let current = '';
+  let inQuote = false;
+
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
-    if (q) { if (ch === '"' && line[i+1] === '"') { c += '"'; i++; } else if (ch === '"') q = false; else c += ch; }
-    else { if (ch === '"') q = true; else if (ch === ',') { r.push(c); c = ''; } else c += ch; }
+    if (inQuote) {
+      if (ch === '"' && line[i+1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuote = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuote = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
   }
-  r.push(c); return r;
+  result.push(current);
+  return result;
 }
-function updateDisplay() { renderDots(); if (messages.length === 0) showIdle(); else showMessage(currentIndex % messages.length); }
-function showIdle() { messageText.classList.remove('visible'); messageText.classList.add('exit'); idleScreen.style.display = 'flex'; if (rotateTimer) clearInterval(rotateTimer); rotateTimer = null; }
-function showMessage(idx) {
+
+// ── Display Logic ──
+function updateDisplay() {
+  // Update dots
+  renderDots();
+
+  if (messages.length === 0) {
+    showIdle();
+  } else {
+    showMessage(currentIndex % messages.length);
+  }
+}
+
+function showIdle() {
+  messageText.classList.remove('visible');
+  messageText.classList.add('exit');
+  idleScreen.style.display = 'flex';
+
+  // Stop rotation
+  if (rotateTimer) clearInterval(rotateTimer);
+  rotateTimer = null;
+}
+
+function showMessage(index) {
   idleScreen.style.display = 'none';
-  messageText.classList.remove('visible'); messageText.classList.add('exit');
-  setTimeout(() => { messageText.textContent = messages[idx]; messageText.classList.remove('exit'); messageText.classList.add('visible'); highlightDot(idx); }, 400);
-  if (!rotateTimer && messages.length > 1) { rotateTimer = setInterval(() => { currentIndex = (currentIndex + 1) % messages.length; showMessage(currentIndex); }, config.displayTime * 1000); }
+
+  // Exit animation
+  messageText.classList.remove('visible');
+  messageText.classList.add('exit');
+
+  setTimeout(() => {
+    messageText.textContent = messages[index];
+    messageText.classList.remove('exit');
+    messageText.classList.add('visible');
+    highlightDot(index);
+  }, 400);
+
+  // Start rotation if not running
+  if (!rotateTimer && messages.length > 1) {
+    rotateTimer = setInterval(() => {
+      currentIndex = (currentIndex + 1) % messages.length;
+      showMessage(currentIndex);
+    }, config.displayTime * 1000);
+  }
 }
-function renderDots() { dots.innerHTML = ''; if (messages.length <= 1) return; for (let i = 0; i < messages.length; i++) { const d = document.createElement('div'); d.className = 'dot' + (i === currentIndex % messages.length ? ' active' : ''); dots.appendChild(d); } }
-function highlightDot(idx) { dots.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === idx)); }
-// Setup panel
-document.getElementById('intervalInput').addEventListener('input', e => { document.getElementById('intervalVal').textContent = e.target.value; });
-document.getElementById('displayInput').addEventListener('input', e => { document.getElementById('displayVal').textContent = e.target.value; });
-document.getElementById('sizeInput').addEventListener('input', e => { document.getElementById('sizeVal').textContent = e.target.value; document.getElementById('messageText').style.fontSize = e.target.value + 'vw'; });
-function setupColorSwatches(cid, cb) { const ct = document.getElementById(cid); ct.addEventListener('click', e => { const s = e.target.closest('.color-swatch'); if (!s) return; ct.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('active')); s.classList.add('active'); cb(s.dataset.color); }); }
-setupColorSwatches('textColorRow', c => { document.documentElement.style.setProperty('--text', c); const r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16); document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.3)`); });
-setupColorSwatches('bgColorRow', c => { document.documentElement.style.setProperty('--bg', c); });
-document.getElementById('fontSelect').addEventListener('change', e => { document.getElementById('messageText').style.fontFamily = e.target.value; });
-document.getElementById('weightSelect').addEventListener('change', e => { document.getElementById('messageText').style.fontWeight = e.target.value; });
+
+function renderDots() {
+  dots.innerHTML = '';
+  if (messages.length <= 1) return;
+  for (let i = 0; i < messages.length; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === currentIndex % messages.length ? ' active' : '');
+    dots.appendChild(dot);
+  }
+}
+
+function highlightDot(index) {
+  const allDots = dots.querySelectorAll('.dot');
+  allDots.forEach((d, i) => d.classList.toggle('active', i === index));
+}
+
+// ── Setup Panel ──
+
+// Range slider live preview
+document.getElementById('intervalInput').addEventListener('input', (e) => {
+  document.getElementById('intervalVal').textContent = e.target.value;
+});
+document.getElementById('displayInput').addEventListener('input', (e) => {
+  document.getElementById('displayVal').textContent = e.target.value;
+});
+document.getElementById('sizeInput').addEventListener('input', (e) => {
+  document.getElementById('sizeVal').textContent = e.target.value;
+  // Live preview font size
+  document.getElementById('messageText').style.fontSize = e.target.value + 'vw';
+});
+
+// Color swatch clicks
+function setupColorSwatches(containerId, callback) {
+  const container = document.getElementById(containerId);
+  container.addEventListener('click', (e) => {
+    const swatch = e.target.closest('.color-swatch');
+    if (!swatch) return;
+    container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    callback(swatch.dataset.color);
+  });
+}
+
+setupColorSwatches('textColorRow', (color) => {
+  document.documentElement.style.setProperty('--text', color);
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+  document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.3)`);
+});
+
+setupColorSwatches('bgColorRow', (color) => {
+  document.documentElement.style.setProperty('--bg', color);
+});
+
+// Font select live preview
+document.getElementById('fontSelect').addEventListener('change', (e) => {
+  document.getElementById('messageText').style.fontFamily = e.target.value;
+});
+
+document.getElementById('weightSelect').addEventListener('change', (e) => {
+  document.getElementById('messageText').style.fontWeight = e.target.value;
+});
+
+// Open/close panel
 function populateSetupPanel() {
   document.getElementById('csvUrlInput').value = config.csvUrl || '';
-  document.getElementById('intervalInput').value = config.fetchInterval; document.getElementById('intervalVal').textContent = config.fetchInterval;
-  document.getElementById('displayInput').value = config.displayTime; document.getElementById('displayVal').textContent = config.displayTime;
-  document.getElementById('sizeInput').value = config.fontSize; document.getElementById('sizeVal').textContent = config.fontSize;
+  document.getElementById('intervalInput').value = config.fetchInterval;
+  document.getElementById('intervalVal').textContent = config.fetchInterval;
+  document.getElementById('displayInput').value = config.displayTime;
+  document.getElementById('displayVal').textContent = config.displayTime;
+  document.getElementById('sizeInput').value = config.fontSize;
+  document.getElementById('sizeVal').textContent = config.fontSize;
   document.getElementById('fontSelect').value = config.fontFamily;
   document.getElementById('weightSelect').value = config.fontWeight;
-  document.querySelectorAll('#textColorRow .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === config.textColor));
-  document.querySelectorAll('#bgColorRow .color-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === config.bgColor));
+
+  // Highlight active color swatches
+  document.querySelectorAll('#textColorRow .color-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === config.textColor);
+  });
+  document.querySelectorAll('#bgColorRow .color-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === config.bgColor);
+  });
 }
-document.addEventListener('keydown', e => {
-  if ((e.key === 's' || e.key === 'S') && document.activeElement.tagName !== 'INPUT') { setupOverlay.classList.toggle('visible'); if (setupOverlay.classList.contains('visible')) populateSetupPanel(); }
+
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 's' || e.key === 'S') && document.activeElement.tagName !== 'INPUT') {
+    setupOverlay.classList.toggle('visible');
+    if (setupOverlay.classList.contains('visible')) populateSetupPanel();
+  }
   if (e.key === 'Escape') setupOverlay.classList.remove('visible');
 });
+
+// Save button
 document.getElementById('saveBtn').addEventListener('click', () => {
-  const tc = document.querySelector('#textColorRow .color-swatch.active'), bc = document.querySelector('#bgColorRow .color-swatch.active');
-  saveConfig({ csvUrl: document.getElementById('csvUrlInput').value.trim(), fetchInterval: parseInt(document.getElementById('intervalInput').value)||30, displayTime: parseInt(document.getElementById('displayInput').value)||8, fontSize: parseFloat(document.getElementById('sizeInput').value)||10, fontFamily: document.getElementById('fontSelect').value, fontWeight: parseInt(document.getElementById('weightSelect').value)||700, textColor: tc ? tc.dataset.color : '#f0f0f0', bgColor: bc ? bc.dataset.color : '#0a0a1a' });
+  const activeTextColor = document.querySelector('#textColorRow .color-swatch.active');
+  const activeBgColor = document.querySelector('#bgColorRow .color-swatch.active');
+
+  saveConfig({
+    csvUrl: document.getElementById('csvUrlInput').value.trim(),
+    fetchInterval: parseInt(document.getElementById('intervalInput').value) || 30,
+    displayTime: parseInt(document.getElementById('displayInput').value) || 8,
+    fontSize: parseFloat(document.getElementById('sizeInput').value) || 10,
+    fontFamily: document.getElementById('fontSelect').value,
+    fontWeight: parseInt(document.getElementById('weightSelect').value) || 700,
+    textColor: activeTextColor ? activeTextColor.dataset.color : '#f0f0f0',
+    bgColor: activeBgColor ? activeBgColor.dataset.color : '#0a0a1a'
+  });
+
   applyVisualConfig();
   document.getElementById('setupStatus').textContent = '✅ 已儲存！';
   startSystem();
+
   setTimeout(() => setupOverlay.classList.remove('visible'), 1200);
 });
+
+// ── Start System ──
 function startSystem() {
-  if (fetchTimer) clearInterval(fetchTimer); if (rotateTimer) clearInterval(rotateTimer);
-  rotateTimer = null; currentIndex = 0;
-  if (!config.csvUrl) { statusText.textContent = '按 S 鍵設定 Google Sheet 網址'; showIdle(); return; }
-  fetchMessages(); fetchTimer = setInterval(fetchMessages, config.fetchInterval * 1000);
+  if (fetchTimer) clearInterval(fetchTimer);
+  if (rotateTimer) clearInterval(rotateTimer);
+  rotateTimer = null;
+  currentIndex = 0;
+
+  if (!config.csvUrl) {
+    statusText.textContent = '按 S 鍵設定 Google Sheet 網址';
+    showIdle();
+    return;
+  }
+
+  fetchMessages(); // Initial fetch
+  fetchTimer = setInterval(fetchMessages, config.fetchInterval * 1000);
 }
-applyVisualConfig(); startSystem();
-if (!config.csvUrl) setTimeout(() => setupOverlay.classList.add('visible'), 1000);
+
+// ── Init ──
+applyVisualConfig();
+startSystem();
+
+// If no URL configured, show setup on first load
+if (!config.csvUrl) {
+  setTimeout(() => setupOverlay.classList.add('visible'), 1000);
+}
 </script>
 </body>
 </html>
