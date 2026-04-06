@@ -819,6 +819,18 @@ function startSystem() {
   fetchTimer = setInterval(fetchMessages, config.fetchInterval * 1000);
 }
 
+// ── URL Parameter Support (for TV - no keyboard needed) ──
+function getUrlParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+const urlCsv = getUrlParam('csv');
+if (urlCsv) {
+  config.csvUrl = decodeURIComponent(urlCsv);
+  saveConfig(config);
+}
+
 // ── Init ──
 applyVisualConfig();
 startSystem();
